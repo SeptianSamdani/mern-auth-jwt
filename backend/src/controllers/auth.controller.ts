@@ -2,6 +2,9 @@ import type { Request, Response } from "express";
 import z = require("zod");
 
 const catchErrors = require('../utils/catchErrors'); 
+const createAccount = require('../services/auth.service'); 
+const { CREATED } = require('../constants/http'); 
+const setAuthCookies = require('../utils/cookies');
 
 const registerSchema = z
     .object({
@@ -22,8 +25,12 @@ const registerHandler = catchErrors(async (req: Request, res: Response) => {
         userAgent: req.headers['user-agent'] as string | undefined,
     }); 
     // call service 
+    const { user, accessToken, refreshToken } = await createAccount(request); 
 
     // return response
+    return setAuthCookies({res, accessToken, refreshToken })
+    .status(CREATED)
+    .json(user); 
 }); 
 
 module.exports = registerHandler;

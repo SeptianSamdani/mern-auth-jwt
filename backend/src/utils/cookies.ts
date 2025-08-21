@@ -1,0 +1,34 @@
+import type { Response, CookieOptions } from"express";
+
+const secure = process.env.NODE_ENV !== "development"; 
+const { fifteenMinutesFromNow, thirtyDaysFromNow } = require('./date'); 
+
+const defaults: CookieOptions = {
+    sameSite: "strict", 
+    httpOnly: true, 
+    secure
+}
+
+const getAccessTokenCookieOptions = (): CookieOptions => ({
+    ...defaults, 
+    expires: fifteenMinutesFromNow()
+})
+
+const getRefreshTokenCookieOptions = (): CookieOptions => ({
+    ...defaults, 
+    expires: thirtyDaysFromNow(), 
+    path: '/auth/refresh'
+})
+
+type Params = {
+    res: Response; 
+    accessToken: string; 
+    refreshToken: string; 
+}
+
+const setAuthCookies = ({ res, accessToken, refreshToken }:Params ) => 
+    res
+        .cookie("accessToken", accessToken, getAccessTokenCookieOptions())
+        .cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions()); 
+
+module.exports = setAuthCookies; 
