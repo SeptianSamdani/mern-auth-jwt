@@ -2,21 +2,10 @@ import type { Request, Response } from "express";
 import z = require("zod");
 
 const catchErrors = require('../utils/catchErrors'); 
-const createAccount = require('../services/auth.service'); 
-const { CREATED } = require('../constants/http'); 
+const { createAccount, loginUser } = require('../services/auth.service'); 
+const { CREATED, OK } = require('../constants/http'); 
 const setAuthCookies = require('../utils/cookies');
-
-const registerSchema = z
-    .object({
-        email: z.string().email().min(1).max(255), 
-        password: z.string().min(6).max(255), 
-        confirmPassword: z.string().min(6).max(255), 
-        userAgent: z.string().optional(), 
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-        message: "Password do not match", 
-        path: ["confirmPassword"], 
-    }); 
+const { loginSchema, registerSchema } = require('./auth.schemas'); 
 
 const registerHandler = catchErrors(async (req: Request, res: Response) => {
     // validate request
@@ -33,4 +22,19 @@ const registerHandler = catchErrors(async (req: Request, res: Response) => {
     .json(user); 
 }); 
 
-module.exports = registerHandler;
+const loginHandler = catchErrors(async (req: Request, res: Response) => {
+    const request = loginSchema.parse({
+        ...req.body, 
+        userAgent: req.headers['user-agent'],
+    }); 
+
+    const { 
+        accessToken, refreshToken 
+    } = await loginUser(request); 
+
+    return setAuthCookies({ res, accessToken, refreshToken }).status(OK).json({
+        message: "Login Successfull"
+    }); 
+}); 
+
+module.exports = { registerHandler, loginHandler};  

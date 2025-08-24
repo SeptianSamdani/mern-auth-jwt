@@ -3,7 +3,7 @@ import assert = require("node:assert");
 const AppErrorCode = require('../constants/appErrorCode'); 
 const AppError = require('./AppError'); 
 
-type AppErrorCode = typeof AppErrorCode[keyof typeof AppErrorCode]; 
+type AppErrorCode = typeof AppErrorCode[keyof typeof AppErrorCode];
 type HttpStatusCode = typeof HttpStatusCode[keyof typeof HttpStatusCode];
 
 type AppAssert = (

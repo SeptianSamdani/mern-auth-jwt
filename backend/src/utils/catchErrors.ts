@@ -15,4 +15,4 @@ const catchErrors = (controller: AsyncController):AsyncController =>
         }
     }
 
-module.exports = catchErrors; 
+module.exports = catchErrors;
