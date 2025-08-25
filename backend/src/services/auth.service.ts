@@ -4,9 +4,10 @@ const UserModel = require('../models/user.model');
 const VerificationCodeModel = require('../models/verificationCode.model'); 
 const { oneYearFromNow } = require('../utils/date'); 
 const SessionModel = require('../models/session.model');
-const { JWT_REFRESH_SECRET, JWT_SECRET } = require("../constants/env"); 
+const { JWT_REFRESH_SECRET, JWT_SECRET } = require("../constants/env");
 const { CONFLICT, UNAUTHORIZED } = require('../constants/http'); 
 const { appAssert } = require('../utils/appAssert'); 
+const { signToken, refreshTokenSignOptions } = require('../utils/jwt'); 
 
 import jwt = require('jsonwebtoken'); 
 
@@ -30,9 +31,11 @@ const createAccount = async (data:CreateAccountParams ) => {
         password: data.password, 
     });
 
+    const userId = user._id; 
+
     // create verification code 
     const verificationCode = await VerificationCodeModel.create({
-        userId: user._id, 
+        userId: userId, 
         type: VerificationCodeType.EmailVerification, 
         expiresAt: oneYearFromNow()
     })
@@ -41,29 +44,20 @@ const createAccount = async (data:CreateAccountParams ) => {
 
     // create session 
     const session = await SessionModel.create({
-        userId: user._id, 
+        userId: userId, 
         userAgent: data.userAgent, 
     })
 
     // sign access token & refresh token 
-    const refreshToken = jwt.sign(
+    const refreshToken = signToken(
         { sessionId: session._id }, 
-        JWT_REFRESH_SECRET, 
-        {
-            audience: ["user"], 
-            expiresIn: "30d"
-        }
+        refreshTokenSignOptions
     )
 
-    const accessToken = jwt.sign(
+    const accessToken = signToken(
         { 
-            userId: user._id,
+            userId: userId,
             sessionId: session._id 
-        }, 
-        JWT_SECRET, 
-        {
-            audience: ["user"], 
-            expiresIn: "15m"
         }
     )
 
@@ -77,7 +71,7 @@ const createAccount = async (data:CreateAccountParams ) => {
 
 type LoginParams = {
     email: string; 
-    password: string 
+    password: string; 
     userAgent?: string; 
 }
 
@@ -91,6 +85,7 @@ const loginUser = async ({email, password, userAgent}:LoginParams ) => {
     appAssert(isValid, UNAUTHORIZED, "Invalid email or password");
 
     const userId = user._id; 
+
     // create a session 
     const session = await SessionModel.create({
         userId, 
@@ -102,26 +97,16 @@ const loginUser = async ({email, password, userAgent}:LoginParams ) => {
     }
 
     // sign access token & refresh token 
-    const refreshToken = jwt.sign(
-        sessionInfo, 
-        JWT_REFRESH_SECRET, 
-        {
-            audience: ["user"], 
-            expiresIn: "30d"
-        }
+    const refreshToken = signToken(
+        sessionInfo, refreshTokenSignOptions
     )
 
-    const accessToken = jwt.sign(
+    const accessToken = signToken(
         { 
             ...sessionInfo,
             userId: user._id,
         }, 
-        JWT_SECRET, 
-        {
-            audience: ["user"], 
-            expiresIn: "15m"
-        }
-    ); 
+    )
 
     // return user & tokens 
     return {
