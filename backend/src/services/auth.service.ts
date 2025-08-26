@@ -5,7 +5,7 @@ const UserModel = require("../models/user.model");
 const VerificationCodeModel = require("../models/verificationCode.model");
 const { oneYearFromNow, ONE_DAY_MS, thirtyDaysFromNow } = require("../utils/date");
 const SessionModel = require("../models/session.model");
-const { CONFLICT, UNAUTHORIZED } = require("../constants/http");
+const { CONFLICT, UNAUTHORIZED, NOT_FOUND, INTERNAL_SERVER_ERROR } = require("../constants/http");
 const { appAssert } = require("../utils/appAssert");
 import type { RefreshTokenPayload } from "../utils/jwt";
 
@@ -167,17 +167,31 @@ const verifyEmail = async (code: string) => {
     const validCode = await VerificationCodeModel.findOne({
         _id: code, 
         type: VerificationCodeType.EmailVerification, 
-        
+        expiresAt: { $gt: new Date() }, 
     })
 
-    // get user by id 
+    appAssert(validCode, NOT_FOUND, "Invalid or expired verification code");
 
     // update user verified to true 
-
+    const updatedUser = await UserModel.findByIdAndUpdate(
+        validCode.userId, 
+        {
+            verified: true, 
+        }, 
+        {
+            new: true
+        }
+    ); 
+    appAssert(updatedUser, INTERNAL_SERVER_ERROR, "Failed to verify email."); 
+    
     // delete the verification code 
+    await validCode.deleteOne(); 
 
     // return user 
+    return {
+        user: updatedUser.omitPassword()
+    }
 
 }
 
-module.exports = { createAccount, loginUser, refreshUserAccessToken };
+module.exports = { createAccount, loginUser, refreshUserAccessToken, verifyEmail };

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import z = require("zod");
 
 const catchErrors = require('../utils/catchErrors'); 
-const { createAccount, loginUser, refreshUserAccessToken } = require('../services/auth.service'); 
+const { createAccount, loginUser, refreshUserAccessToken, verifyEmail } = require('../services/auth.service'); 
 const { CREATED, OK, UNAUTHORIZED } = require('../constants/http'); 
 const { setAuthCookies, clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions } = require('../utils/cookies');
 const { loginSchema, registerSchema, verificationCodeSchema } = require('./auth.schemas'); 
@@ -77,8 +77,11 @@ const refreshHandler = catchErrors(async (req: Request, res: Response) => {
 const verifyEmailHandler = catchErrors(async (req: Request, res: Response) => {
     const verificationCode = verificationCodeSchema.parse(req.params.code); 
 
-    // find the session by verification code 
-    
-})
+    await verifyEmail(verificationCode); 
 
-module.exports = { registerHandler, loginHandler, logoutHandler, refreshHandler };
+    return res.status(OK).json({
+        message: "Email was successfully verified."
+    }); 
+}); 
+
+module.exports = { registerHandler, loginHandler, logoutHandler, refreshHandler, verifyEmailHandler };
