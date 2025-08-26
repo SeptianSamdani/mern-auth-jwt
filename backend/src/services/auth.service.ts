@@ -1,15 +1,17 @@
+// auth.service.ts
 const { VerificationCodeType } = require("../constants/VerificationCodeTypes");
 
-const UserModel = require('../models/user.model'); 
-const VerificationCodeModel = require('../models/verificationCode.model'); 
-const { oneYearFromNow } = require('../utils/date'); 
-const SessionModel = require('../models/session.model');
-const { JWT_REFRESH_SECRET, JWT_SECRET } = require("../constants/env");
-const { CONFLICT, UNAUTHORIZED } = require('../constants/http'); 
-const { appAssert } = require('../utils/appAssert'); 
-const { signToken, refreshTokenSignOptions } = require('../utils/jwt'); 
+const UserModel = require("../models/user.model");
+const VerificationCodeModel = require("../models/verificationCode.model");
+const { oneYearFromNow, ONE_DAY_MS, thirtyDaysFromNow } = require("../utils/date");
+const SessionModel = require("../models/session.model");
+const { CONFLICT, UNAUTHORIZED } = require("../constants/http");
+const { appAssert } = require("../utils/appAssert");
+import type { RefreshTokenPayload } from "../utils/jwt";
 
-import jwt = require('jsonwebtoken'); 
+const { refreshTokenSignOptions, signToken, verifyToken } = require("../utils/jwt");
+
+import jwt = require("jsonwebtoken"); 
 
 type CreateAccountParams = {
     email: string, 
@@ -116,4 +118,66 @@ const loginUser = async ({email, password, userAgent}:LoginParams ) => {
     }; 
 };
 
-module.exports = createAccount;
+const verifyTokenTyped = verifyToken as <TPayload extends object>(
+    token: string,
+    options: { secret: string }
+) => { payload?: TPayload; error?: string };
+
+const refreshUserAccessToken = async (refreshToken: string) => {
+    const { payload } = verifyTokenTyped<RefreshTokenPayload>(refreshToken, {
+    secret: refreshTokenSignOptions.secret,
+    });
+    appAssert(payload, UNAUTHORIZED, "Invalid refresh token");
+
+    const session = await SessionModel.findById(payload?.sessionId);
+    const now = Date.now();
+    appAssert(
+        session && session.expiresAt.getTime() > now,
+        UNAUTHORIZED,
+        "Session expired"
+    );
+
+    // refresh the session if it expires in the next 24hrs
+    const sessionNeedsRefresh = session.expiresAt.getTime() - now <= ONE_DAY_MS;
+    if (sessionNeedsRefresh) {
+    session.expiresAt = thirtyDaysFromNow();
+    await session.save();
+    }
+
+    const newRefreshToken = sessionNeedsRefresh
+    ? signToken(
+        { sessionId: session._id },
+        refreshTokenSignOptions
+        )
+    : undefined;
+
+    const accessToken = signToken({
+    userId: session.userId,
+    sessionId: session._id,
+    });
+
+    return {
+    accessToken,
+    newRefreshToken,
+    };
+};
+
+const verifyEmail = async (code: string) => {
+    // get the verification code 
+    const validCode = await VerificationCodeModel.findOne({
+        _id: code, 
+        type: VerificationCodeType.EmailVerification, 
+        
+    })
+
+    // get user by id 
+
+    // update user verified to true 
+
+    // delete the verification code 
+
+    // return user 
+
+}
+
+module.exports = { createAccount, loginUser, refreshUserAccessToken };

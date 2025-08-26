@@ -37,4 +37,4 @@ const clearAuthCookies = (res: Response) =>
         path: REFRESH_PATH
     })
 
-module.exports = { setAuthCookies, clearAuthCookies }; 
+module.exports = { setAuthCookies, clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions, REFRESH_PATH }; 

@@ -2,6 +2,7 @@ import type { Response, ErrorRequestHandler } from "express";
 import z = require("zod");
 const { INTERNAL_SERVER_ERROR, BAD_REQUEST } = require('../constants/http'); 
 const AppError = require('../utils/AppError'); 
+const { REQUEST_PATH, clearAuthCookies  } = require('../utils/cookies'); 
 
 type AppError = typeof AppError[keyof typeof AppError]; 
 
@@ -27,6 +28,10 @@ const handleAppError = (res: Response, error: AppError) => {
 
 const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
     console.log(`PATH: ${req.path}`, error); 
+
+    if (req.path === REQUEST_PATH) {
+        clearAuthCookies(res); 
+    }
 
     if (error instanceof z.ZodError) {
         return handleZodError(res, error); 
