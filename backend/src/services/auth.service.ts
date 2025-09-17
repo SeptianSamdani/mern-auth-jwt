@@ -8,8 +8,11 @@ const SessionModel = require("../models/session.model");
 const { CONFLICT, UNAUTHORIZED, NOT_FOUND, INTERNAL_SERVER_ERROR } = require("../constants/http");
 const { appAssert } = require("../utils/appAssert");
 import type { RefreshTokenPayload } from "../utils/jwt";
+const { APP_ORIGIN } = require("../constants/env");
 
 const { refreshTokenSignOptions, signToken, verifyToken } = require("../utils/jwt");
+const sendMail = require("../utils/sendMail");
+const { getVerifyEmailTemplate } = require("../utils/emailTemplates");
 
 import jwt = require("jsonwebtoken"); 
 
@@ -23,9 +26,9 @@ const createAccount = async (data:CreateAccountParams ) => {
     // verify existing user doesn't exist 
     const existingUser = await UserModel.exists({
         email: data.email
-    })
+    }); 
 
-    appAssert(!existingUser, CONFLICT, "Email already in use!")
+    appAssert(!existingUser, CONFLICT, "Email already in use!"); 
 
     // create user
     const user = await UserModel.create({
@@ -42,7 +45,20 @@ const createAccount = async (data:CreateAccountParams ) => {
         expiresAt: oneYearFromNow()
     })
 
+    const url = `${APP_ORIGIN}/email/verify/${verificationCode._id}`;
+
     // send verification email 
+    const {
+        error 
+    } =    
+    await sendMail({
+        to: user.email,
+        ...getVerifyEmailTemplate(url)
+    }); 
+
+    if (error) {
+        console.log("Error sending verification email: ", error);
+    }
 
     // create session 
     const session = await SessionModel.create({

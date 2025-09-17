@@ -6,7 +6,7 @@ const { createAccount, loginUser, refreshUserAccessToken, verifyEmail } = requir
 const { CREATED, OK, UNAUTHORIZED } = require('../constants/http'); 
 const { setAuthCookies, clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions } = require('../utils/cookies');
 const { loginSchema, registerSchema, verificationCodeSchema } = require('./auth.schemas'); 
-const { verifyToken, accessTokenPayload } = require('../utils/jwt'); 
+const { verifyToken, accessTokenPayload } = require('../utils/jwt');
 const SessionModel = require('../models/session.model'); 
 const { appAssert } = require('../utils/appAssert'); 
 
