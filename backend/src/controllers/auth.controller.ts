@@ -2,13 +2,14 @@ import type { Request, Response } from "express";
 import z = require("zod");
 
 const catchErrors = require('../utils/catchErrors'); 
-const { createAccount, loginUser, refreshUserAccessToken, verifyEmail } = require('../services/auth.service'); 
+const { createAccount, loginUser, refreshUserAccessToken, verifyEmail, sendPasswordResetEmail, resetPassword } = require('../services/auth.service'); 
 const { CREATED, OK, UNAUTHORIZED } = require('../constants/http'); 
 const { setAuthCookies, clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions } = require('../utils/cookies');
-const { loginSchema, registerSchema, verificationCodeSchema } = require('./auth.schemas'); 
+const { loginSchema, registerSchema, verificationCodeSchema, emailSchema, resetPasswordSchema } = require('./auth.schemas'); 
 const { verifyToken, accessTokenPayload } = require('../utils/jwt');
-const SessionModel = require('../models/session.model'); 
-const { appAssert } = require('../utils/appAssert'); 
+const SessionModel = require('../models/session.model');
+const { appAssert } = require('../utils/appAssert');
+
 
 const registerHandler = catchErrors(async (req: Request, res: Response) => {
     // validate request
@@ -84,4 +85,25 @@ const verifyEmailHandler = catchErrors(async (req: Request, res: Response) => {
     }); 
 }); 
 
-module.exports = { registerHandler, loginHandler, logoutHandler, refreshHandler, verifyEmailHandler };
+const sendPasswordResetHanlder = catchErrors(async (req: Request, res: Response) => {
+    const email = emailSchema.parse(req.body.email); 
+
+    // call the service
+    await sendPasswordResetEmail(email); 
+
+    return res.status(OK).json({
+        message: "Password reset email send."
+    }); 
+}); 
+
+const resetPasswordHandler = catchErrors(async (req: Request, res: Response) => {
+    const request = resetPasswordSchema.parse(req.body); 
+
+    await resetPassword(request); 
+
+    return clearAuthCookies(res).status(OK).json({
+        message: "Password reset successful. Please login with your new password."
+    }); 
+})
+
+module.exports = { registerHandler, loginHandler, logoutHandler, refreshHandler, verifyEmailHandler, sendPasswordResetHanlder, resetPasswordHandler };

@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const oneYearFromNow = () => new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+const thirtyDaysFromNow = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+const fifteenMinutesFromNow = () => new Date(Date.now() + 15 * 60 * 1000);
+const fiveMinutesAgo = () => new Date(Date.now() - 5 * 60 * 1000);
+const oneHourFromNow = () => new Date(Date.now() + 60 * 60 * 1000);
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+module.exports = { oneYearFromNow, thirtyDaysFromNow, fifteenMinutesFromNow, ONE_DAY_MS, fiveMinutesAgo, oneHourFromNow };
+//# sourceMappingURL=date.js.map

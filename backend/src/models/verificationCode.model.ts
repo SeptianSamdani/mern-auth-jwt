@@ -1,3 +1,5 @@
+// models/verificationCode.model.ts
+
 import mongoose = require("mongoose");
 const { VerificationCodeType } = require('../constants/VerificationCodeTypes');
 
